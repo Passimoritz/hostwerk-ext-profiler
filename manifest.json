@@ -1,0 +1,41 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Passimoritz/hostwerk-public/main/sdk/manifest.schema.json",
+  "id": "profiler",
+  "name": {
+    "de": "Leistungs-Messung",
+    "en": "Profiler"
+  },
+  "description": {
+    "de": "Findet heraus, warum eine Seite oder App langsam ist: PHP-Profil per Klick (Xdebug), Node- und Python-Apps über Inspektor bzw. cProfile – mit langsamsten Funktionen, Datenbank-Anteil, verständlichen Hinweisen und KI-Erklärung.",
+    "en": "Finds out why a page or app is slow: PHP profile with one click (Xdebug), Node and Python apps through the inspector or cProfile – with the slowest functions, the database share, plain hints and an AI explanation."
+  },
+  "version": "1.0.0",
+  "author": "Hostwerk",
+  "homepage": "https://github.com/Passimoritz/hostwerk-ext-profiler",
+  "license": "MIT",
+  "icon": "icon.svg",
+  "banner": "banner.svg",
+  "color": "#ea580c",
+  "category": "developer",
+  "hostwerk": ">=2.9.0",
+  "permissions": [
+    "native"
+  ],
+  "page": {
+    "title": {
+      "de": "Leistungs-Messung",
+      "en": "Profiler"
+    },
+    "description": {
+      "de": "Langsame Seiten und Apps finden.",
+      "en": "Find slow pages and apps."
+    },
+    "icon": "gauge"
+  },
+  "backend": "server/index.js",
+  "ui": "ui/index.js",
+  "screenshots": [
+    "docs/screenshot.png",
+    "docs/screenshot.de.png"
+  ]
+}
