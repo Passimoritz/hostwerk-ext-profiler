@@ -10,6 +10,7 @@ Findet heraus, warum eine Seite oder App langsam ist: PHP-Profil mit einem Klick
 
 ## Was sie kann
 
+- **Wo:** Reiter jedes Projekts – seit 1.1.1 ohne eigenen Seitenleisten-Eintrag; die ganze Seite bleibt unter Erweiterungen → Öffnen
 - PHP-Profil per Klick (Xdebug wird nur für den Aufruf eingeschaltet und danach zurückgestellt – auch wenn etwas schiefgeht)
 - Node.js-Apps über den Inspektor, Python über cProfile – eine Kopie läuft auf eigenem Port, die echte App bleibt unberührt
 - Die langsamsten Funktionen, der Anteil der Datenbank und ein **Flammendiagramm** (Klick auf einen Balken vergrößert ihn)

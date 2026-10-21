@@ -9,7 +9,7 @@
     "de": "Findet heraus, warum eine Seite oder App langsam ist: PHP-Profil per Klick (Xdebug), Node- und Python-Apps über Inspektor bzw. cProfile – mit langsamsten Funktionen, Flammendiagramm, Datenbank-Anteil, Vergleich vorher/nachher, Messung beliebiger Anfragen (auch POST), kleinem Lasttest, verständlichen Hinweisen und KI-Erklärung.",
     "en": "Finds out why a page or app is slow: PHP profile with one click (Xdebug), Node and Python apps through the inspector or cProfile – with the slowest functions, a flame graph, the database share, before/after comparison, measuring any request (also POST), a small load test, plain hints and an AI explanation."
   },
-  "version": "1.1.0",
+  "version": "1.1.1",
   "author": "Hostwerk",
   "homepage": "https://github.com/Passimoritz/hostwerk-ext-profiler",
   "license": "MIT",
@@ -31,10 +31,7 @@
       "en": "Find slow pages and apps."
     },
     "icon": "gauge",
-    "nav": {
-      "group": "develop",
-      "after": "projects"
-    }
+    "nav": false
   },
   "backend": "server/index.js",
   "ui": "ui/index.js",

@@ -10,6 +10,7 @@ Finds out why a page or app is slow: PHP profile with one click (Xdebug), Node a
 
 ## What it does
 
+- **Where:** the tab of every project – no own sidebar entry since 1.1.1; the full page stays under Extensions → Open
 - PHP profile with one click (Xdebug is switched on just for the call and set back afterwards – also when something fails)
 - Node.js apps through the inspector, Python through cProfile – a copy runs on its own port, the real app stays untouched
 - The slowest functions, the share of the database and a **flame graph** (click a bar to zoom in)
