@@ -42,9 +42,9 @@ jobs:
           ID=$(node -p "require('./manifest.json').id")
           VER=$(node -p "require('./manifest.json').version")
           if [ "v$VER" != "$GITHUB_REF_NAME" ]; then echo "Tag $GITHUB_REF_NAME does not match manifest version $VER"; exit 1; fi
-          FILES="manifest.json"
-          for f in icon.svg icon.png banner.svg banner.png page widget locales server.js server ui/index.js ui/index.css docs CHANGELOG.md README.md README.de.md LICENSE browser-extension; do [ -e "$f" ] && FILES="$FILES $f"; done
-          zip -r -X "$ID-$VER.zip" $FILES -x 'docs/*.md'
+          # Everything in the repository belongs to the package – only the repository's own tooling stays out
+          # (no fixed folder list, so new folders like lang/ or data/ can never be forgotten)
+          git ls-files -z | grep -zvE '^(\.github/|\.gitignore$|\.gitattributes$|tests/|tools/|ui/src/|node_modules/|package(-lock)?\.json$|docs/.*\.md$)' | xargs -0 zip -X "$ID-$VER.zip"
           sha256sum "$ID-$VER.zip" | cut -d' ' -f1 > "$ID-$VER.zip.sha256"
           echo "Package: $ID-$VER.zip ($(cat "$ID-$VER.zip.sha256"))"
       - name: Publish release

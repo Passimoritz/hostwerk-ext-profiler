@@ -10,11 +10,14 @@ Findet heraus, warum eine Seite oder App langsam ist: PHP-Profil mit einem Klick
 
 ## Was sie kann
 
-- PHP-Profil mit einem Klick (Xdebug)
-- Node.js-Apps über den Inspector, Python über cProfile
-- Die langsamsten Funktionen und der Anteil der Datenbank
-- Verständliche Hinweise und eine KI-Erklärung
-- Verlauf früherer Messungen, Reiter „Leistung“ in jedem Projekt
+- PHP-Profil per Klick (Xdebug wird nur für den Aufruf eingeschaltet und danach zurückgestellt – auch wenn etwas schiefgeht)
+- Node.js-Apps über den Inspektor, Python über cProfile – eine Kopie läuft auf eigenem Port, die echte App bleibt unberührt
+- Die langsamsten Funktionen, der Anteil der Datenbank und ein **Flammendiagramm** (Klick auf einen Balken vergrößert ihn)
+- **Vorher und nachher**: die letzten 10 Messungen bleiben erhalten – zwei beliebige vergleichen, bis zur einzelnen Funktion
+- **Anfrage messen**: jede Adresse mit GET, POST, PUT … und Inhalt; PHP-Projekte werden an ihrer Adresse erkannt. Der API-Tester nutzt dasselbe (`ctx.profiler.runRequest({ url, method, headers, body })`)
+- **Kleiner Lasttest**: N Aufrufe, mehrere gleichzeitig, mit Median, 95 %, langsamstem Aufruf und Aufrufen pro Sekunde – nur gegen diesen Rechner oder dein eigenes Netz
+- Verständliche Hinweise und eine KI-Erklärung, Reiter „Leistung“ in jedem Projekt, Fehlerzustände mit „Erneut versuchen“
+- Steht unter „Entwickeln“ direkt hinter den Projekten; ein Tastenkürzel lässt sich unter Einstellungen → Allgemein → Tastenkürzel belegen
 
 ## Installieren
 

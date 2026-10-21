@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert');
-const { parseCachegrind, parseCpuProfile, phpSummary, appSummary } = require('../server/parsers');
+const { parseCachegrind, parseCpuProfile, phpSummary, appSummary, compare, loadStats, localTarget } = require('../server/parsers');
 const de = require('../locales/de.json');
 
 const fill = (s, v) => (v ? String(s).replace(/\{(\w+)\}/g, (m, k) => (v[k] !== undefined ? v[k] : m)) : s);
@@ -43,4 +43,39 @@ test('CPU profile (Node format)', () => {
 
 test('every German text has a value', () => {
   for (const [k, v] of Object.entries(de)) if (k !== '$patterns') assert.ok(typeof v === 'string' && v.trim(), k);
+});
+
+test('call trees for the flame graph (PHP and Node)', () => {
+  const t = parseCachegrind(CG).tree;
+  assert.strictEqual(t.name, '{main}'); assert.strictEqual(t.value, 6.6);
+  assert.deepStrictEqual(t.children.map((c) => [c.name, c.value]), [['render', 6.5]]);
+  assert.deepStrictEqual(t.children[0].children.map((c) => [c.name, c.value]), [['mysqli_query', 6]]);
+  const prof = { nodes: [{ id: 1, callFrame: { functionName: '(root)', url: '' }, children: [2, 4] }, { id: 2, callFrame: { functionName: 'handler', url: 'a.js' }, children: [3] }, { id: 3, callFrame: { functionName: 'query', url: 'db.js' } }, { id: 4, callFrame: { functionName: '(idle)', url: '' } }], samples: [3, 3, 2, 4], timeDeltas: [1000, 1000, 1000, 1000] };
+  const n = parseCpuProfile(prof).tree;
+  assert.strictEqual(n.name, '(root)');
+  assert.deepStrictEqual(n.children.map((c) => c.name), ['handler'], 'idle is left out');
+  assert.strictEqual(n.children[0].children[0].value, 2);
+});
+
+test('compare two measurements: totals and the biggest changes', () => {
+  const a = { totalMs: 200, dbMs: 120, bySelf: [{ name: 'q', file: 'db.php', self: 100 }, { name: 'render', file: 'v.php', self: 50 }] };
+  const b = { totalMs: 120, dbMs: 30, bySelf: [{ name: 'q', file: 'db.php', self: 20 }, { name: 'render', file: 'v.php', self: 55 }, { name: 'cache', file: 'c.php', self: 3 }] };
+  const c = compare(a, b);
+  assert.deepStrictEqual(c.totalMs, { before: 200, after: 120, delta: -80, pct: -40 });
+  assert.strictEqual(c.dbMs.delta, -90);
+  assert.deepStrictEqual(c.functions.map((f) => [f.name, f.delta]), [['q', -80], ['render', 5], ['cache', 3]]);
+  assert.strictEqual(compare(null, b).totalMs.pct, null);
+});
+
+test('load test numbers', () => {
+  const s = loadStats([...Array.from({ length: 19 }, (_, i) => ({ ms: i + 1, status: 200, ok: true })), { ms: 500, status: 500, ok: false }], 1000);
+  assert.deepStrictEqual([s.total, s.ok, s.failed, s.p50, s.p95, s.min, s.max, s.rps], [20, 19, 1, 10, 19, 1, 19, 20]);
+  assert.deepStrictEqual(s.statuses, { 200: 19, 500: 1 });
+  assert.strictEqual(loadStats([], 0).p50, null);
+});
+
+test('load tests only against the own computer or network', () => {
+  for (const u of ['http://localhost:8080/', 'http://shop.localhost/', 'http://x.test/', 'http://127.0.0.1/', 'http://192.168.0.5/', 'http://[::1]:3000/']) assert.ok(localTarget(u), u);
+  for (const u of ['https://example.org/', 'ftp://localhost/', 'http://172.40.0.1/', 'nonsense']) assert.ok(!localTarget(u), u);
+  assert.ok(localTarget('http://shop.example/', ['shop.example']), 'own virtual hosts');
 });

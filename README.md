@@ -10,11 +10,14 @@ Finds out why a page or app is slow: PHP profile with one click (Xdebug), Node a
 
 ## What it does
 
-- PHP profile with one click (Xdebug)
-- Node.js apps through the inspector, Python through cProfile
-- The slowest functions and the share of the database
-- Plain hints and an AI explanation
-- History of earlier runs, tab “Performance” in every project
+- PHP profile with one click (Xdebug is switched on just for the call and set back afterwards – also when something fails)
+- Node.js apps through the inspector, Python through cProfile – a copy runs on its own port, the real app stays untouched
+- The slowest functions, the share of the database and a **flame graph** (click a bar to zoom in)
+- **Before and after**: the last 10 measurements are kept – compare any two, down to the function
+- **Measure a request**: any address with GET, POST, PUT … and a body; PHP projects are found by their address. The API tester uses the same (`ctx.profiler.runRequest({ url, method, headers, body })`)
+- **Small load test**: N calls, several at once, with median, 95 %, slowest and calls per second – only against this computer or your own network
+- Plain hints and an AI explanation, tab “Performance” in every project, error states with “Try again”
+- Sits under “Develop” right after the projects; a shortcut to assign under Settings → General → Shortcuts
 
 ## Install
 

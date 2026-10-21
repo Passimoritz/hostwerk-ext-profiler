@@ -6,10 +6,10 @@
     "en": "Profiler"
   },
   "description": {
-    "de": "Findet heraus, warum eine Seite oder App langsam ist: PHP-Profil per Klick (Xdebug), Node- und Python-Apps über Inspektor bzw. cProfile – mit langsamsten Funktionen, Datenbank-Anteil, verständlichen Hinweisen und KI-Erklärung.",
-    "en": "Finds out why a page or app is slow: PHP profile with one click (Xdebug), Node and Python apps through the inspector or cProfile – with the slowest functions, the database share, plain hints and an AI explanation."
+    "de": "Findet heraus, warum eine Seite oder App langsam ist: PHP-Profil per Klick (Xdebug), Node- und Python-Apps über Inspektor bzw. cProfile – mit langsamsten Funktionen, Flammendiagramm, Datenbank-Anteil, Vergleich vorher/nachher, Messung beliebiger Anfragen (auch POST), kleinem Lasttest, verständlichen Hinweisen und KI-Erklärung.",
+    "en": "Finds out why a page or app is slow: PHP profile with one click (Xdebug), Node and Python apps through the inspector or cProfile – with the slowest functions, a flame graph, the database share, before/after comparison, measuring any request (also POST), a small load test, plain hints and an AI explanation."
   },
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "Hostwerk",
   "homepage": "https://github.com/Passimoritz/hostwerk-ext-profiler",
   "license": "MIT",
@@ -30,12 +30,40 @@
       "de": "Langsame Seiten und Apps finden.",
       "en": "Find slow pages and apps."
     },
-    "icon": "gauge"
+    "icon": "gauge",
+    "nav": {
+      "group": "develop",
+      "after": "projects"
+    }
   },
   "backend": "server/index.js",
   "ui": "ui/index.js",
   "screenshots": [
     "docs/screenshot.png",
     "docs/screenshot.de.png"
-  ]
+  ],
+  "provides": [
+    "profiler"
+  ],
+  "synergies": [
+    {
+      "with": "api-tester",
+      "title": {
+        "de": "Eine Anfrage aus dem API-Tester messen – auch POST mit Inhalt",
+        "en": "Measure a request from the API tester – also POST with a body"
+      }
+    },
+    {
+      "with": "page-check",
+      "title": {
+        "de": "Erst den Seiten-Check, dann hier sehen, welche Funktion bremst",
+        "en": "Page check first, then see here which function slows it down"
+      }
+    }
+  ],
+  "allowExtensions": {
+    "*": [
+      "tabs"
+    ]
+  }
 }

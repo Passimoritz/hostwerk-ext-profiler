@@ -1,0 +1,16 @@
+/* Profiler: flame graph, key figures, forms */
+.prof-facts { gap: var(--sp-4); flex-wrap: wrap; }
+.prof-wrap { flex-wrap: wrap; }
+.prof-gap { gap: var(--sp-2); }
+.prof-hints { gap: var(--sp-1); }
+.prof-noshrink { flex-shrink: 0; }
+.prof-min { min-width: 0; }
+.prof-top { align-items: start; }
+.prof-link { color: inherit; text-decoration: none; }
+.prof-num { width: 5.5em; }
+.prof-bar-col { width: 160px; }
+.prof-flame-wrap { gap: var(--sp-2); }
+.prof-flame { display: flex; flex-direction: column; gap: 2px; }
+.prof-flame-row { position: relative; height: 24px; }
+.prof-flame-bar { position: absolute; top: 0; bottom: 0; min-width: 2px; padding: 0 var(--sp-1); border: 1px solid var(--accent); border-radius: var(--r-xs); background: var(--accent-soft); color: var(--text); font-size: var(--fs-2xs); text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: zoom-in; }
+.prof-flame-bar:hover, .prof-flame-bar:focus-visible { background: var(--accent); color: var(--accent-contrast); }
