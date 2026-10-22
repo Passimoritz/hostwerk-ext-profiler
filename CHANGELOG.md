@@ -1,3 +1,7 @@
+## 1.1.2
+
+- Empty views show Hostwerk’s empty tile instead of a grey sentence. / Leere Ansichten zeigen Hostwerks Leer-Kachel statt eines grauen Satzes.
+
 ## 1.1.1
 
 - Lives where it belongs: the tab of every project – no own sidebar entry any more (Hostwerk 3.0+); the full page stays under Extensions → Open and can be pinned in the sidebar settings. / Steckt jetzt dort, wo sie hingehört: Reiter jedes Projekts – kein eigener Seitenleisten-Eintrag mehr (Hostwerk 3.0+); die ganze Seite bleibt unter Erweiterungen → Öffnen und lässt sich in den Seitenleisten-Einstellungen anheften.

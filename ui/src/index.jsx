@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Gauge, Play, Database, Wand2, ArrowRight, Zap, FolderGit2, History, Timer, Flame, GitCompare, Send, Activity, RefreshCw, AlertTriangle } from 'lucide-react';
 import { post, useApi, waitJob, fmtDate, fmtNumber } from '@hostwerk/api';
-import { Btn, Seg, Empty, Loading, InfoTip, toast } from '@hostwerk/ui';
+import { Btn, Seg, Empty, Loading, InfoTip, toast, TileEmpty } from '@hostwerk/ui';
 import { AiHint } from '@hostwerk/kit';
 import { t } from '@hostwerk/i18n';
 import './style.css';
@@ -62,7 +62,7 @@ function Compare({ before, after }) {
         <div><div className="tiny muted">Total</div><div className="bold">{ms(c.totalMs.before)} → {ms(c.totalMs.after)} <span className={cls(c.totalMs.delta)}>{sign(c.totalMs.delta)}{c.totalMs.pct != null ? ` (${c.totalMs.pct > 0 ? '+' : ''}${c.totalMs.pct} %)` : ''}</span></div></div>
         <div><div className="tiny muted">Database</div><div className="bold">{ms(c.dbMs.before)} → {ms(c.dbMs.after)} <span className={cls(c.dbMs.delta)}>{sign(c.dbMs.delta)}</span></div></div>
       </div>
-      {c.functions.length === 0 ? <div className="card-body small muted">No function changed noticeably.</div> : (
+      {c.functions.length === 0 ? <TileEmpty text="No function changed noticeably." /> : (
         <table className="table prof-table"><thead><tr><th>Function</th><th className="num">before</th><th className="num">after</th><th className="num">change</th></tr></thead><tbody>
           {c.functions.map((f, i) => <tr key={i}><td><div className="mono small ellipsis" title={f.name}>{f.name}</div><div className="tiny muted ellipsis">{(f.file || '').split(/[\\/]/).slice(-2).join('/')}</div></td><td className="num small">{ms(f.before)}</td><td className="num small">{ms(f.after)}</td><td className={`num small ${cls(f.delta)}`}>{sign(f.delta)}</td></tr>)}
         </tbody></table>
@@ -111,7 +111,7 @@ function Result({ r, runsKey }) {
           {r.profiled && (
             <div className="card">
               <div className="card-head"><Seg value={view} onChange={setView} options={views} /></div>
-              {view === 'flame' ? <FlameGraph tree={r.tree} /> : list.length === 0 ? <div className="card-body small muted">Nothing in this view.</div> : (
+              {view === 'flame' ? <FlameGraph tree={r.tree} /> : list.length === 0 ? <TileEmpty text="Nothing in this view." /> : (
                 <table className="table prof-table"><thead><tr><th>Function</th><th className="num">Calls</th><th className="num">{view === 'self' ? 'own ms' : 'total ms'}</th><th className="prof-bar-col" /></tr></thead><tbody>
                   {list.map((f, i) => { const v = view === 'self' ? f.self : f.incl; return <tr key={i}><td><div className="mono small ellipsis" title={f.name}>{f.name}</div><div className="tiny muted ellipsis" title={f.file}>{(f.file || '').split(/[\\/]/).slice(-2).join('/')}</div></td><td className="num small">{f.calls}</td><td className="num small">{v}</td><td><div className="bar"><div style={{ width: `${(v / max) * 100}%` }} /></div></td></tr>; })}
                 </tbody></table>
@@ -277,7 +277,7 @@ function ProfilerPage({ path = [] }) {
           </div>
           <div className="card">
             <div className="card-head"><History size={16} /><h3>Latest measurements</h3></div>
-            {hist.error && !hist.data ? <div className="card-body small c-err">{hist.error}</div> : !hist.data ? <Loading /> : hist.data.length === 0 ? <div className="card-body small muted">Nothing measured yet.</div> : hist.data.slice(0, 12).map((h) => (
+            {hist.error && !hist.data ? <div className="card-body small c-err">{hist.error}</div> : !hist.data ? <Loading /> : hist.data.length === 0 ? <TileEmpty text="Nothing measured yet." /> : hist.data.slice(0, 12).map((h) => (
               <div key={h.key} className="list-item">
                 <Timer size={15} className="muted" />
                 <div className="grow prof-min"><div className="small bold ellipsis">{h.project || h.app || h.request}</div><div className="tiny muted ellipsis">{h.hint}</div></div>
