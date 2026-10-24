@@ -1,3 +1,7 @@
+## 1.1.3
+
+- New animated icon and banner in the common Hostwerk style (isometric block). / Neues animiertes Symbol und Banner im gemeinsamen Hostwerk-Stil (isometrischer Block).
+
 ## 1.1.2
 
 - Empty views show Hostwerk’s empty tile instead of a grey sentence. / Leere Ansichten zeigen Hostwerks Leer-Kachel statt eines grauen Satzes.
