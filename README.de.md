@@ -4,7 +4,7 @@
 
 Findet heraus, warum eine Seite oder App langsam ist: PHP-Profil mit einem Klick (Xdebug), Node- und Python-Apps über den Inspector bzw. cProfile.
 
-[English](README.md) · Offizielle [Hostwerk](https://github.com/Passimoritz/hostwerk-public)-Erweiterung (SDK 2.7, native Erweiterung)
+[English](README.md) · Offizielle [Hostwerk](https://github.com/Passimoritz/hostwerk-public)-Erweiterung (native Erweiterung, ab Hostwerk 2.9)
 
 ![Bildschirmfoto](docs/screenshot.de.png)
 
