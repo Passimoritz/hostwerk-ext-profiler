@@ -18,6 +18,7 @@
   "color": "#ea580c",
   "category": "developer",
   "hostwerk": ">=2.9.0",
+  "sdkVersion": "3.16",
   "permissions": [
     "native"
   ],
@@ -35,6 +36,11 @@
   },
   "backend": "server/index.js",
   "ui": "ui/index.js",
+  "data": {
+    "folders": [
+      "data/profiler"
+    ]
+  },
   "screenshots": [
     "docs/screenshot.png",
     "docs/screenshot.de.png"

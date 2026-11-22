@@ -105,5 +105,17 @@
   "Unknown method": "Unbekannte Methode",
   "Load tests only run against this computer or your own network (localhost, *.localhost, *.test, private addresses).": "Lasttests laufen nur gegen diesen Rechner oder dein eigenes Netz (localhost, *.localhost, *.test, private Adressen).",
   "Load test: {url}": "Lasttest: {url}",
-  "$patterns": []
+  "This looks like a PHP project, but no PHP version of Hostwerk serves it – only the response time was measured ({ms} ms). A profile needs PHP installed through Hostwerk.": "Das sieht nach einem PHP-Projekt aus, aber keine PHP-Version von Hostwerk liefert es aus – gemessen wurde nur die Antwortzeit ({ms} ms). Für ein Profil braucht es ein über Hostwerk installiertes PHP.",
+  "The page answered with HTTP {status} – the times are those of the error page, not of the real page.": "Die Seite antwortete mit HTTP {status} – die Zeiten gelten für die Fehlerseite, nicht für die eigentliche Seite.",
+  "$patterns": [],
+  "no connection": "keine Verbindung",
+  "Answers": "Antworten",
+  "Every call failed without an answer – is the server running at this address and reachable from this PC?": "Jeder Aufruf scheiterte ohne Antwort – läuft der Server unter dieser Adresse und ist er von diesem PC erreichbar?",
+  "Every call failed – the server answers with {status}. Check its log.": "Jeder Aufruf scheiterte – der Server antwortet mit {status}. Sieh in sein Protokoll.",
+  "Clear all measurements?": "Alle Messungen löschen?",
+  "The stored results and their earlier runs are removed. Projects and apps stay as they are.": "Die gespeicherten Ergebnisse und ihre früheren Läufe werden entfernt. Projekte und Apps bleiben, wie sie sind.",
+  "Clear": "Leeren",
+  "Remove this measurement": "Diese Messung entfernen",
+  "Remove {name}": "{name} entfernen",
+  "Measurement not found": "Messung nicht gefunden"
 }

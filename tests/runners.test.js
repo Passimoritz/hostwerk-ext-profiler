@@ -143,3 +143,59 @@ test('app copy: Node app runs on its own port under the inspector and is stopped
     await assert.rejects(fetch(r.url, { signal: AbortSignal.timeout(2000) }), 'the copy is stopped again');
   } finally { real.close(); s.done(); }
 });
+
+test('hints are stored as keys and translated when read – a language switch shows them in the new language', async () => {
+  const s = setup();
+  try {
+    let lang = 'de';
+    const de = { 'The page is fast – no bottleneck in sight.': 'Die Seite ist schnell – kein Engpass in Sicht.' };
+    s.p.t = (k, v) => { const x = lang === 'de' && de[k] ? de[k] : k; return v ? x.replace(/\{(\w+)\}/g, (m, n) => (v[n] !== undefined ? v[n] : m)) : x; };
+    const r = await s.p.runProject('shop').promise;
+    assert.ok(r.hints.every((h) => typeof h === 'string'), 'the job result is text');
+    const disk = JSON.parse(fs.readFileSync(path.join(s.ctx.paths.data, 'profiler', 'shop.json'), 'utf8'));
+    assert.ok(disk.hints.every((h) => h && typeof h === 'object' && h.k), 'stored as keys');
+    const first = s.p.lastProject('shop').hints;
+    lang = 'en';
+    const again = s.p.lastProject('shop').hints;
+    assert.strictEqual(first.length, again.length);
+    assert.ok(again.every((h) => typeof h === 'string' && h.length));
+    if (disk.hints.some((h) => de[h.k])) assert.notDeepStrictEqual(first, again, 'other language now');
+    assert.strictEqual(typeof s.p.runs('shop')[0].hints[0], 'string');
+    // ältere Messungen mit fertigen Sätzen bleiben lesbar
+    fs.writeFileSync(path.join(s.ctx.paths.data, 'profiler', 'old.json'), JSON.stringify({ at: 1, url: 'http://x/', hints: ['Alter deutscher Satz'] }));
+    assert.deepStrictEqual(s.p.lastProject('old').hints, ['Alter deutscher Satz']);
+    assert.strictEqual(s.p.history().find((h) => h.key === 'old').hint, 'Alter deutscher Satz');
+  } finally { s.done(); }
+});
+
+test('data folder: data/profiler (own name, offered by "remove completely"); the old data/profile moves over once', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'prof-mv-'));
+  const data = path.join(root, 'data'); fs.mkdirSync(path.join(data, 'profile'), { recursive: true });
+  fs.writeFileSync(path.join(data, 'profile', 'shop.json'), JSON.stringify({ at: 5, url: 'http://shop/', totalMs: 12, hints: [] }));
+  const host = { ctx: { paths: { data } }, t: (s) => s, core: () => ({ runJob: () => ({}), writeFileSafe: () => {} }) };
+  const p = new Profiler(host);
+  assert.strictEqual(p.dir, path.join(data, 'profiler'));
+  assert.ok(!fs.existsSync(path.join(data, 'profile')), 'moved');
+  assert.strictEqual(p.lastProject('shop').totalMs, 12);
+  const m = require('../manifest.json'); assert.deepStrictEqual(m.data.folders, ['data/profiler']);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('history: app name instead of its id; clear one or all', async () => {
+  const s = setup();
+  try {
+    s.ctx.apps = { get: (id) => { if (id !== 'node-pp') throw new Error('unknown'); return { id, name: 'Node App' }; } };
+    fs.mkdirSync(path.join(s.ctx.paths.data, 'profiler', 'runs'), { recursive: true });
+    fs.writeFileSync(path.join(s.ctx.paths.data, 'profiler', 'app-node-pp.json'), JSON.stringify({ at: 2, app: 'node-pp', totalMs: 3, hints: [{ k: 'x' }] }));
+    fs.writeFileSync(path.join(s.ctx.paths.data, 'profiler', 'app-gone.json'), JSON.stringify({ at: 1, app: 'gone', totalMs: 3 }));
+    await s.p.runProject('shop').promise;
+    const h = s.p.history();
+    assert.strictEqual(h.find((x) => x.key === 'app-node-pp').appName, 'Node App');
+    assert.strictEqual(h.find((x) => x.key === 'app-gone').appName, null);
+    assert.deepStrictEqual(s.p.forget('app-gone').map((x) => x.key).sort(), ['app-node-pp', 'shop']);
+    assert.throws(() => s.p.forget('app-gone'), (e) => e.status === 404);
+    assert.strictEqual(s.p.runs('shop').length, 1);
+    assert.deepStrictEqual(s.p.forget(null), []);
+    assert.deepStrictEqual(s.p.runs('shop'), [], 'kept runs go too');
+  } finally { s.done(); }
+});

@@ -72,6 +72,21 @@ test('load test numbers', () => {
   assert.deepStrictEqual([s.total, s.ok, s.failed, s.p50, s.p95, s.min, s.max, s.rps], [20, 19, 1, 10, 19, 1, 19, 20]);
   assert.deepStrictEqual(s.statuses, { 200: 19, 500: 1 });
   assert.strictEqual(loadStats([], 0).p50, null);
+  // Alles fehlgeschlagen (Dienst gestoppt): keine „1333 je Sekunde“ vortäuschen
+  assert.strictEqual(loadStats([{ ms: 1, status: null, ok: false }, { ms: 2, status: 500, ok: false }], 3).rps, null);
+});
+
+test('app summary: Node HTTP internals and Python import machinery are no bottleneck', () => {
+  const fns = [
+    { name: 'onParserExecute', file: 'node:_http_server', line: 939, self: 40, incl: 60, calls: 3 },
+    { name: 'fib', file: 'C:/p/server.js', line: 2, self: 30, incl: 30, calls: 9 },
+    { name: '<built-in method nt.stat>', file: '~', line: 0, self: 20, incl: 900, calls: 400 },
+    { name: '<built-in method _io.open_code>', file: '~', line: 0, self: 5, incl: 300, calls: 50 },
+  ];
+  const s = appSummary({ functions: fns, totalMs: 100, responseMs: [20] }, tEn);
+  assert.ok(s.hints.some((h) => /“fib” \(server\.js:2\)/.test(h)), s.hints.join(' | '));
+  assert.ok(!s.hints.some((h) => /onParserExecute|nt\.stat/.test(h)), s.hints.join(' | '));
+  assert.deepStrictEqual(s.io, []);
 });
 
 test('load tests only against the own computer or network', () => {

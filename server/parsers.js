@@ -103,7 +103,7 @@ function phpSummary(parsed, t) {
   if (slowest && parsed.totalMs && slowest.self / parsed.totalMs > 0.3) hints.push(t('“{name}” alone takes {pct} % of the time (called {calls}×).', { name: slowest.name, pct: pct(slowest.self), calls: slowest.calls }));
   const hot = bySelf.find((f) => f.calls > 1000);
   if (hot) hints.push(t('“{name}” is called {calls}× – can that happen outside the loop?', { name: hot.name, calls: hot.calls }));
-  if (io[0] && io[0].incl > 200) hints.push(t('External call / file access “{name}” takes {ms} ms – do it in the background or cache it.', { name: io[0].name, ms: io[0].incl }));
+  if (io[0] && io[0].incl > 200) hints.push(t('External call / file access “{name}” takes {ms} ms – do it in the background or cache it.', { name: io[0].name, ms: Math.round(io[0].incl) }));
   if (parsed.memory > 64 * 1048576) hints.push(t('Peak memory {mb} MB.', { mb: Math.round(parsed.memory / 1048576) }));
   if (!hints.length) hints.push(parsed.totalMs < 100 ? t('The page is fast – no bottleneck in sight.') : t('No single bottleneck – the time is spread over many functions (framework bootstrap, autoloading). Opcache and caching help.'));
   return { totalMs: parsed.totalMs, memory: parsed.memory, tree: parsed.tree || null, functions: fns.length, bySelf, byIncl, db: db.slice(0, 15), io: io.slice(0, 10), dbMs, dbCalls, hints };
@@ -112,11 +112,16 @@ function phpSummary(parsed, t) {
 /** Same for Node/Python app profiles. */
 function appSummary(result, t, basename = (f) => String(f || '').split(/[\\/]/).pop()) {
   const fns = result.functions;
-  const own = (f) => !/node_modules|site-packages|<frozen|node:internal|\/lib\/python/.test(f.file || '');
+  // Eigener Code: keine Bibliotheken, keine Python-Standardbibliothek (auch Windows: …\Python312\Lib\…), nichts Eingebautes (Datei „~“)
+  const own = (f) => f.file !== '~' && !/^node:|node_modules|site-packages|<frozen|node:internal|[\\/]lib[\\/]python|[\\/]python\d*[\\/]lib[\\/]/i.test(f.file || '');
   const bySelf = [...fns].sort((a, b) => b.self - a.self).slice(0, 25);
   const byIncl = [...fns].filter(own).sort((a, b) => b.incl - a.incl).slice(0, 25);
-  const io = fns.filter((f) => /query|execute|fetch|request|readFile|writeFile|readdir|stat|connect|socket|sleep|await|send|recv|open|urlopen|get|post/i.test(f.name) && f.incl > 5).sort((a, b) => b.incl - a.incl).slice(0, 12);
-  const db = fns.filter((f) => /query|execute|cursor|sql|prisma|sequelize|knex|mongoose|pg|mysql|sqlite|redis/i.test(`${f.name} ${f.file}`) && f.incl > 1).sort((a, b) => b.incl - a.incl).slice(0, 12);
+  // Ohne Pythons Import-Maschinerie (Start der App, kein Warten im Betrieb: <frozen …>, nt.stat, _io.open_code …) und ohne
+  // Node-Interna des HTTP-Servers wie „onParserExecute“ (weder Warten noch Datenbank)
+  const pyImport = (f) => /^<frozen/.test(f.file || '') || (f.file === '~' && /\b(nt|posix)\.(stat|lstat|listdir|scandir)\b|_io\.open_code|_imp\.|marshal\.loads/.test(f.name));
+  const nodeHttp = (f) => /^node:(_http_|internal\/)/.test(f.file || '');
+  const io = fns.filter((f) => !pyImport(f) && !nodeHttp(f) && /query|execute|fetch|request|readFile|writeFile|readdir|stat|connect|socket|sleep|await|send|recv|open|urlopen|get|post/i.test(f.name) && f.incl > 5).sort((a, b) => b.incl - a.incl).slice(0, 12);
+  const db = fns.filter((f) => !/^node:(?!sqlite)/.test(f.file || '') && /query|execute|cursor|sql|prisma|sequelize|knex|mongoose|pg|mysql|sqlite|redis/i.test(`${f.name} ${f.file}`) && f.incl > 1).sort((a, b) => b.incl - a.incl).slice(0, 12);
   const hints = [];
   const avg = Math.round(result.responseMs.reduce((x, y) => x + y, 0) / Math.max(1, result.responseMs.length));
   if (avg > 1000) hints.push(t('Average response time {ms} ms – every visitor notices that.', { ms: avg }));
@@ -124,7 +129,7 @@ function appSummary(result, t, basename = (f) => String(f || '').split(/[\\/]/).
   if (top && result.totalMs && top.self / result.totalMs > 0.25) hints.push(t('“{name}” ({file}:{line}) takes {pct} % of the measured time.', { name: top.name, file: basename(top.file), line: top.line, pct: Math.round((top.self / result.totalMs) * 100) }));
   const dbMs = db.reduce((n, f) => n + f.self, 0);
   if (result.totalMs && dbMs / result.totalMs > 0.3) hints.push(t('Database access makes up {pct} % – bundle queries, check indexes, cache results.', { pct: Math.round((dbMs / result.totalMs) * 100) }));
-  if (io[0] && io[0].incl > 200) hints.push(t('“{name}” waits {ms} ms (network/file) – do it in the background or cache it.', { name: io[0].name, ms: io[0].incl }));
+  if (io[0] && io[0].incl > 200) hints.push(t('“{name}” waits {ms} ms (network/file) – do it in the background or cache it.', { name: io[0].name, ms: Math.round(io[0].incl) }));
   if (!hints.length) hints.push(avg < 100 ? t('The app answers fast – no bottleneck in sight.') : t('No single bottleneck – the time is spread (framework, serialisation). Caching helps.'));
   return { functions: fns.length, bySelf, byIncl, db, io, dbMs: Math.round(dbMs), dbCalls: db.reduce((n, f) => n + (f.calls || 0), 0), hints };
 }
@@ -150,7 +155,7 @@ function loadStats(samples, wallMs) {
   const q = (p) => (ok.length ? ok[Math.min(ok.length - 1, Math.ceil((p / 100) * ok.length) - 1)] : null);
   const statuses = {};
   for (const x of samples) { const k = x.status ? String(x.status) : 'error'; statuses[k] = (statuses[k] || 0) + 1; }
-  return { total: samples.length, ok: ok.length, failed: samples.length - ok.length, p50: q(50), p95: q(95), min: ok[0] ?? null, max: ok[ok.length - 1] ?? null, rps: wallMs > 0 ? Math.round((samples.length / wallMs) * 10000) / 10 : null, ms: wallMs, statuses };
+  return { total: samples.length, ok: ok.length, failed: samples.length - ok.length, p50: q(50), p95: q(95), min: ok[0] ?? null, max: ok[ok.length - 1] ?? null, rps: wallMs > 0 && ok.length ? Math.round((samples.length / wallMs) * 10000) / 10 : null, ms: wallMs, statuses };
 }
 
 /** Darf ein Lasttest diese Adresse treffen? Nur der eigene Rechner und das eigene Netz – nie fremde Server. */

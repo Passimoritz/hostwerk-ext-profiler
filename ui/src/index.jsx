@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
-import { Gauge, Play, Database, Wand2, ArrowRight, Zap, FolderGit2, History, Timer, Flame, GitCompare, Send, Activity, RefreshCw, AlertTriangle } from 'lucide-react';
-import { post, useApi, waitJob, fmtDate, fmtNumber } from '@hostwerk/api';
-import { Btn, Seg, Empty, Loading, InfoTip, toast, TileEmpty } from '@hostwerk/ui';
+import { Gauge, Play, Database, Wand2, ArrowRight, Zap, FolderGit2, History, Timer, Flame, GitCompare, Send, Activity, RefreshCw, AlertTriangle, Trash2, X } from 'lucide-react';
+import { post, del, useApi, waitJob, fmtDate, fmtNumber } from '@hostwerk/api';
+import { Btn, Seg, Empty, Loading, InfoTip, Callout, toast, TileEmpty, confirmDialog } from '@hostwerk/ui';
 import { AiHint } from '@hostwerk/kit';
 import { t } from '@hostwerk/i18n';
 import './style.css';
@@ -14,6 +14,11 @@ import './style.css';
  */
 
 const ms = (v) => `${fmtNumber(Math.round((Number(v) || 0) * 10) / 10)} ms`;
+/** Wie ms(), aber „–“ statt „0 ms“, wenn es keinen Wert gibt (z. B. Lasttest, bei dem alles fehlschlug). */
+const msOr = (v) => (v == null || Number.isNaN(Number(v)) ? '–' : ms(v));
+/** Antworten eines Lasttests nach Status: [[„200“, 80], [„error“, 20]] – häufigste zuerst. */
+const statusList = (st) => Object.entries(st || {}).sort((a, b) => b[1] - a[1]);
+const statusLabel = (k) => (k === 'error' ? t('no connection') : `HTTP ${k}`);
 
 /** Flame graph (icicle): every bar is a function, its width the share of the time; click zooms in. */
 function FlameGraph({ tree }) {
@@ -53,7 +58,7 @@ function FlameGraph({ tree }) {
 /** Before → after: total time, database and the functions that changed most. */
 function Compare({ before, after }) {
   const c = useMemo(() => compareRuns(before, after), [before, after]);
-  const sign = (v) => (v > 0 ? `+${ms(v)}` : `−${ms(Math.abs(v))}`);
+  const sign = (v) => (v > 0 ? `+${ms(v)}` : v < 0 ? `−${ms(Math.abs(v))}` : `±${ms(0)}`);
   const cls = (v) => (v > 0 ? 'c-err' : v < 0 ? 'c-ok' : 'muted');
   return (
     <div className="card">
@@ -82,7 +87,8 @@ function compareRuns(before, after, limit = 20) {
 
 /** Result of one measurement: key figures, the slowest functions, flame graph, hints, comparison and an AI explanation. */
 function Result({ r, runsKey }) {
-  const [view, setView] = useState('self');
+  const [pick, setView] = useState('self');
+  const view = pick === 'flame' && !r.tree ? 'self' : pick; // neue Messung ohne Flammendiagramm
   const runs = useApi(runsKey ? `/profiler/runs/${encodeURIComponent(runsKey)}` : null, [runsKey, r.at], { live: false });
   const [cmp, setCmp] = useState('');
   const older = (runs.data || []).filter((x) => x.at !== r.at);
@@ -90,8 +96,8 @@ function Result({ r, runsKey }) {
   const list = (view === 'self' ? r.bySelf : view === 'incl' ? r.byIncl : view === 'db' ? r.db : r.io) || [];
   const max = Math.max(1, ...list.map((f) => (view === 'self' ? f.self : f.incl)));
   const facts = [
-    ['Total', `${r.totalMs} ms`],
-    ['Response', `${(r.responseMs || []).join(' / ')} ms`],
+    ['Total', msOr(r.totalMs)],
+    ['Response', (r.responseMs || []).length ? `${r.responseMs.map((x) => fmtNumber(x)).join(' / ')} ms` : '–'],
     ['Database', r.profiled ? t('{ms} ms · {n} queries', { ms: Math.round(r.dbMs || 0), n: r.dbCalls || 0 }) : '–'],
     ['Functions', r.profiled ? r.functions : '–'],
     ['Memory', r.memory ? `${Math.round(r.memory / 1048576)} MB` : '–'],
@@ -110,8 +116,8 @@ function Result({ r, runsKey }) {
           </div>
           {r.profiled && (
             <div className="card">
-              <div className="card-head"><Seg value={view} onChange={setView} options={views} /></div>
-              {view === 'flame' ? <FlameGraph tree={r.tree} /> : list.length === 0 ? <TileEmpty text="Nothing in this view." /> : (
+              <div className="card-head prof-views"><Seg value={view} onChange={setView} options={views} /></div>
+              {view === 'flame' ? <FlameGraph key={r.at} tree={r.tree} /> : list.length === 0 ? <TileEmpty text="Nothing in this view." /> : (
                 <table className="table prof-table"><thead><tr><th>Function</th><th className="num">Calls</th><th className="num">{view === 'self' ? 'own ms' : 'total ms'}</th><th className="prof-bar-col" /></tr></thead><tbody>
                   {list.map((f, i) => { const v = view === 'self' ? f.self : f.incl; return <tr key={i}><td><div className="mono small ellipsis" title={f.name}>{f.name}</div><div className="tiny muted ellipsis" title={f.file}>{(f.file || '').split(/[\\/]/).slice(-2).join('/')}</div></td><td className="num small">{f.calls}</td><td className="num small">{v}</td><td><div className="bar"><div style={{ width: `${(v / max) * 100}%` }} /></div></td></tr>; })}
                 </tbody></table>
@@ -124,7 +130,7 @@ function Result({ r, runsKey }) {
           {older.length > 0 && (
             <div className="card">
               <div className="card-head"><GitCompare size={16} /><h3>Compare</h3><InfoTip title="Compare">Pick an earlier measurement – you see what got faster or slower, down to the function. The last 10 measurements are kept.</InfoTip></div>
-              <div className="card-body"><select className="select" value={cmp} aria-label="Earlier measurement" onChange={(e) => setCmp(e.target.value)}><option value="">Earlier measurement …</option>{older.map((x) => <option key={x.at} value={String(x.at)}>{`${fmtDate(x.at)} · ${x.totalMs} ms`}</option>)}</select></div>
+              <div className="card-body"><select className="select" value={cmp} aria-label="Earlier measurement" onChange={(e) => setCmp(e.target.value)}><option value="">Earlier measurement …</option>{older.map((x) => <option key={x.at} value={String(x.at)}>{`${fmtDate(x.at)} · ${msOr(x.totalMs)}`}</option>)}</select></div>
             </div>
           )}
           {r.profiled && <AiHint item="profile" title="AI explains the profile" input={`Page ${r.url}: ${r.totalMs} ms total, database ${Math.round(r.dbMs || 0)} ms in ${r.dbCalls || 0} queries, memory ${Math.round((r.memory || 0) / 1048576)} MB.\nOwn time:\n${(r.bySelf || []).slice(0, 12).map((f) => `- ${f.name} (${f.file}): ${f.self} ms own, ${f.incl} ms total, ${f.calls}x`).join('\n')}\nDatabase:\n${(r.db || []).slice(0, 8).map((f) => `- ${f.name}: ${f.incl} ms, ${f.calls}x`).join('\n')}\nHints: ${(r.hints || []).join(' ')}`} />}
@@ -138,18 +144,21 @@ function Result({ r, runsKey }) {
 /** Tab on a project: take a PHP profile or an app profile. */
 export function ProfileTab({ p }) {
   const last = useApi(`/projects/${p.id}/profile`, [p.id], { live: false });
-  const [url, setUrl] = useState(p.urls[0] || '');
-  const [busy, setBusy] = useState(false);
+  const appIds = p.appIds || [];
+  const apps = useApi(appIds.length ? '/apps' : null, [appIds.length], { live: false });
+  const appName = (id) => ((apps.data || []).find((a) => a.id === id) || {}).name || id;
+  const [url, setUrl] = useState((p.urls || [])[0] || '');
+  const [busy, setBusy] = useState(null); // 'php' oder die App-Id, die gerade gemessen wird
   const [key, setKey] = useState(p.id);
   const run = async () => {
-    setBusy(true);
+    setBusy('php');
     try { const r = await post(`/projects/${p.id}/profile`, { url }); const j = await waitJob(r.job); last.setData(j.result); setKey(p.id); toast.success(j.result.profiled ? t('Profile: {ms} ms', { ms: j.result.totalMs }) : t('Response time {ms} ms (no PHP profile)', { ms: j.result.totalMs })); } catch (e) { toast.error(e); }
-    setBusy(false);
+    setBusy(null);
   };
   const runApp = async (appId) => {
-    setBusy(true);
+    setBusy(appId);
     try { const r = await post(`/apps/${appId}/profile`, { url: url || undefined, seconds: 8, requests: 10 }); const j = await waitJob(r.job); last.setData(j.result); setKey(`app-${appId}`); toast.success(t('App profile ({kind}): {ms} ms measured', { kind: j.result.kind, ms: j.result.totalMs })); } catch (e) { toast.error(e); }
-    setBusy(false);
+    setBusy(null);
   };
   return (
     <div className="stack">
@@ -157,13 +166,14 @@ export function ProfileTab({ p }) {
         <div className="card-head"><Gauge size={16} /><h3>Find slow pages</h3><span className="small muted">PHP profile with one click (Xdebug)</span>
           <InfoTip title="How it measures">PHP: Hostwerk turns on the Xdebug profiler just for this call and reads the cachegrind file. Node/Python apps: a copy of the app runs briefly on its own port under the inspector or cProfile and the address is called ten times – the real app stays untouched.</InfoTip>
         </div>
-        <div className="card-body">
+        {/* Formular: Enter in der Adresse misst wie bei „Anfrage“ und „Lasttest“ */}
+        <form className="card-body" onSubmit={(e) => { e.preventDefault(); if (!busy) run(); }}>
           <div className="row prof-wrap">
             <input className="input mono grow" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="http://localhost:8080/project/page" aria-label="Address of the page" />
-            <Btn className="primary" icon={Play} busy={busy} onClick={run}>Take profile (PHP)</Btn>
-            {(p.appIds || []).map((a) => <Btn key={a} icon={Play} busy={busy} onClick={() => runApp(a)}>{t('App profile “{name}” (Node/Python)', { name: a })}</Btn>)}
+            <Btn className="primary" icon={Play} busy={busy === 'php'} disabled={!!busy} type="submit">Take profile (PHP)</Btn>
+            {appIds.map((a) => <Btn key={a} icon={Play} busy={busy === a} disabled={!!busy} type="button" onClick={() => runApp(a)}>{t('App profile “{name}” (Node/Python)', { name: appName(a) })}</Btn>)}
           </div>
-        </div>
+        </form>
       </div>
       {last.error && !last.data ? <Empty icon={AlertTriangle} title="Could not load the last measurement" text={last.error} action={<Btn icon={RefreshCw} onClick={() => last.reload()}>Try again</Btn>} /> : last.data && <Result r={last.data} runsKey={key} />}
     </div>
@@ -180,8 +190,9 @@ function RequestCard() {
   const run = async () => {
     setBusy(true);
     try {
-      const isJson = /^\s*[[{]/.test(body);
-      const j = await waitJob((await post('/profiler/request', { url, method, body: body || null, headers: body ? { 'content-type': isJson ? 'application/json' : 'application/x-www-form-urlencoded' } : {} })).job);
+      const sent = method === 'GET' ? '' : body; // Inhalt bleibt beim Wechsel auf GET im Feld, wird aber nicht mitgeschickt
+      const isJson = /^\s*[[{]/.test(sent);
+      const j = await waitJob((await post('/profiler/request', { url, method, body: sent || null, headers: sent ? { 'content-type': isJson ? 'application/json' : 'application/x-www-form-urlencoded' } : {} })).job);
       setR(j.result);
     } catch (e) { toast.error(e); }
     setBusy(false);
@@ -229,10 +240,13 @@ function LoadCard() {
         </div>
         {r && (
           <div className="row prof-facts">
-            {[['Median', ms(r.p50)], ['95 %', ms(r.p95)], ['Slowest', ms(r.max)], ['Per second', fmtNumber(r.rps)], ['Failed', `${r.failed} / ${r.total}`]].map(([k, v]) => <div key={k}><div className="tiny muted">{k}</div><div className="bold">{v}</div></div>)}
+            {[['Median', msOr(r.p50)], ['95 %', msOr(r.p95)], ['Slowest', msOr(r.max)], ['Per second', r.rps == null ? '–' : fmtNumber(r.rps)], ['Failed', `${r.failed} / ${r.total}`]].map(([k, v]) => <div key={k}><div className="tiny muted">{k}</div><div className="bold">{v}</div></div>)}
             <div className="right tiny muted ellipsis">{r.url} · {fmtDate(r.at)}</div>
           </div>
         )}
+        {/* Aufschlüsselung nach Status – und ein klarer Hinweis, wenn gar nichts ankam */}
+        {r && r.statuses && <div className="tiny muted prof-statuses">{t('Answers')}: {statusList(r.statuses).map(([k, n]) => `${n}× ${statusLabel(k)}`).join(' · ')}</div>}
+        {r && r.total > 0 && r.ok === 0 && <Callout kind="err" dismissible={false}>{statusList(r.statuses)[0] && statusList(r.statuses)[0][0] === 'error' ? t('Every call failed without an answer – is the server running at this address and reachable from this PC?') : t('Every call failed – the server answers with {status}. Check its log.', { status: statusLabel((statusList(r.statuses)[0] || ['?'])[0]) })}</Callout>}
       </form>
     </div>
   );
@@ -247,6 +261,9 @@ function ProfilerPage({ path = [] }) {
   const list = projects.data || [];
   const p = sel && list.find((x) => x.id === sel);
   const last = new Map((hist.data || []).filter((h) => h.project).map((h) => [h.project, h]));
+  const clearAll = async () => { if (!(await confirmDialog({ title: t('Clear all measurements?'), text: t('The stored results and their earlier runs are removed. Projects and apps stay as they are.'), confirm: t('Clear'), danger: true }))) return; try { hist.setData(await del('/profiler/history')); } catch (e) { toast.error(e); } };
+  const forgetOne = async (h) => { try { hist.setData(await del(`/profiler/history/${encodeURIComponent(h.key)}`)); } catch (e) { toast.error(e); } };
+  const histName = (h) => (h.project && (list.find((x) => x.id === h.project) || {}).name) || h.project || h.appName || h.app || h.request;
   return (
     <div className="page fade-in">
       <div className="page-head">
@@ -257,9 +274,10 @@ function ProfilerPage({ path = [] }) {
       </div>
       {!p && <div className="mb"><Seg value={tab} onChange={setTab} options={[{ id: 'projects', label: 'Projects', icon: FolderGit2 }, { id: 'request', label: 'Request', icon: Send }, { id: 'load', label: 'Load test', icon: Activity }]} /></div>}
       {!p && tab === 'request' ? <RequestCard /> : !p && tab === 'load' ? <LoadCard /> : projects.error && !projects.data ? <Empty icon={AlertTriangle} title="Could not load the projects" text={projects.error} action={<Btn icon={RefreshCw} onClick={() => projects.reload()}>Try again</Btn>} /> : !projects.data ? <Loading /> : list.length === 0 ? <Empty icon={FolderGit2} title="No projects yet" text="Profiles are taken per project. Create or import a project first." action={<a className="btn primary" href="#/projects">Projects</a>} /> : (
-        <div className="grid split-side prof-top">
-          <div className="stack">
-            {p ? <><div className="row-tight"><a className="btn ghost sm" href="#/ext/profiler">All projects</a><b>{p.name}</b></div><ProfileTab p={p} /></> : (
+        // Projekt offen: das (zweispaltige) Ergebnis bekommt die ganze Breite, der Verlauf steht darunter
+        <div className={p ? 'stack' : 'grid split-side prof-top'}>
+          <div className="stack prof-min">
+            {p ? <><div className="row-tight"><a className="btn ghost sm prof-noshrink" href="#/ext/profiler">All projects</a><b className="ellipsis prof-min" title={p.name}>{p.name}</b></div><ProfileTab key={p.id} p={p} /></> : (
               <div className="card">
                 <div className="card-head"><FolderGit2 size={16} /><h3>Projects</h3></div>
                 {list.map((x) => {
@@ -267,7 +285,7 @@ function ProfilerPage({ path = [] }) {
                   return (
                     <a key={x.id} className="list-item prof-link" href={`#/ext/profiler/${encodeURIComponent(x.id)}`}>
                       <Zap size={15} className="muted" />
-                      <div className="grow prof-min"><div className="bold ellipsis">{x.name}</div><div className="tiny muted ellipsis">{h ? `${h.totalMs} ms · ${fmtDate(h.at)}` : t('Not measured yet')}</div></div>
+                      <div className="grow prof-min"><div className="bold ellipsis">{x.name}</div><div className="tiny muted ellipsis">{h ? `${msOr(h.totalMs)} · ${fmtDate(h.at)}` : t('Not measured yet')}</div></div>
                       <ArrowRight size={14} className="muted" />
                     </a>
                   );
@@ -276,12 +294,13 @@ function ProfilerPage({ path = [] }) {
             )}
           </div>
           <div className="card">
-            <div className="card-head"><History size={16} /><h3>Latest measurements</h3></div>
+            <div className="card-head"><History size={16} /><h3>Latest measurements</h3>{hist.data && hist.data.length > 0 && <div className="right"><Btn className="xs ghost" icon={Trash2} onClick={clearAll}>Clear</Btn></div>}</div>
             {hist.error && !hist.data ? <div className="card-body small c-err">{hist.error}</div> : !hist.data ? <Loading /> : hist.data.length === 0 ? <TileEmpty text="Nothing measured yet." /> : hist.data.slice(0, 12).map((h) => (
               <div key={h.key} className="list-item">
                 <Timer size={15} className="muted" />
-                <div className="grow prof-min"><div className="small bold ellipsis">{h.project || h.app || h.request}</div><div className="tiny muted ellipsis">{h.hint}</div></div>
-                <span className="badge">{h.totalMs} ms</span>
+                <div className="grow prof-min"><div className="small bold ellipsis" title={h.url}>{histName(h)}</div><div className="tiny muted ellipsis">{h.hint}</div></div>
+                <span className="badge">{msOr(h.totalMs)}</span>
+                <Btn className="xs ghost icon" icon={X} title={t('Remove this measurement')} aria-label={t('Remove {name}', { name: histName(h) })} onClick={() => forgetOne(h)} />
               </div>
             ))}
           </div>
