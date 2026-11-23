@@ -1,3 +1,10 @@
+## 1.2.0
+
+- Clear the history – single measurements or all at once; the history shows app names instead of IDs. / Verlauf leeren – einzelne Messungen oder alle; der Verlauf zeigt App-Namen statt Kennungen.
+- Load test: answers broken down by status (e.g. “100× no connection · 20× HTTP 500”) with a clear hint when every call failed; “per second” shows “–” then. / Lasttest: Antworten nach Status aufgeschlüsselt (z. B. „100× keine Verbindung · 20× HTTP 500“) mit klarem Hinweis, wenn alles fehlschlug; „Pro Sekunde“ zeigt dann „–“.
+- Hints appear in the current language (also after switching), measuring an error page (HTTP 400+) says so first, Node/Python internals no longer count as bottlenecks, Enter in the address field measures. / Hinweise erscheinen in der aktuellen Sprache (auch nach dem Wechsel), eine gemessene Fehlerseite (HTTP 400+) wird zuerst genannt, Node-/Python-Interna gelten nicht mehr als Bremse, Enter im Adressfeld misst.
+- Measurements live in data/profiler now (moved once from data/profile), so “Remove completely” offers them; long names no longer widen the page. / Messungen liegen jetzt in data/profiler (einmalig aus data/profile umgezogen), damit „Restlos entfernen“ sie anbietet; lange Namen verbreitern die Seite nicht mehr.
+
 ## 1.1.3
 
 - New animated icon and banner in the common Hostwerk style (isometric block). / Neues animiertes Symbol und Banner im gemeinsamen Hostwerk-Stil (isometrischer Block).
